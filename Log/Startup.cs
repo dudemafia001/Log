@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 using Log.Models;
 using Log.Generator;
 using Log.Services;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Log
 {
@@ -29,9 +32,39 @@ namespace Log
         public void ConfigureServices(IServiceCollection services)
         {
             var logReadings = GenerateLogs();
+
+            var appSettingsSection = Configuration.GetSection("AppSettings");
+            services.Configure<AppSettings>(appSettingsSection);
+
+            //JWT Authentication starts
+
+            var appSettings = appSettingsSection.Get<AppSettings>();
+            var key = Encoding.ASCII.GetBytes(appSettings.Key);
+
+            services.AddAuthentication(au =>
+            {
+                au.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                au.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(jwt =>
+            {
+                jwt.RequireHttpsMetadata = false;
+                jwt.SaveToken = true;
+                jwt.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+            services.AddScoped<IAuthenticationService, AuthenticationService>();//when request IAuthenticationService return AuthenticationService 
+
+            //JWT Authentication ends
+
             services.AddSingleton((IServiceProvider arg) => logReadings);
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddTransient<ILogs, LogsService>();
+            services.AddScoped<IAuthenticationService, AuthenticationService>();//when request IAuthenticationService return AuthenticationService 
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

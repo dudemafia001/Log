@@ -5,10 +5,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Log.Services;
 using Log.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Log.Controllers
 {
     [Route("Logs")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     public class HomeController : ControllerBase
     {
